@@ -12,6 +12,8 @@ IPTzTray sets the Windows time zone from your public IP — the address your tra
 
 Only the time zone changes; the clock itself (UTC time) is not moved. The screen shows a different local time, and websites, programs and services show the same time.
 
+Optionally, and this is off, the program also sets the Windows country from the IP's country and restores your own when that adjustment is turned off. The display language and the Microsoft account region stay as they are.
+
 This way the program removes two visible signs of a VPN: local time that does not match the IP, and DNS queries that bypass the tunnel. Other signs, such as a datacenter IP or the system language, it does not touch.
 
 The program sees the IP of the whole system. A proxy set only in the browser goes unnoticed.
@@ -112,7 +114,9 @@ Three grey lines at the top: place, IP with the IANA time zone name, current Win
 ![Settings](screenshots/settings.png)
 
 - **Restore the home time zone on exit** — on by default.
-- **Remember the current time zone** — makes the current time zone home right away.
+- **Remember the current time zone** — makes the current time zone home right away, and remembers the current Windows country.
+- **Match the country to the IP** — off. Sets the Windows country from the public IP's country. Administrator rights are not needed for this.
+- **Restore your country when this is turned off or switched** — on. Your country comes back when the box is cleared, on pause, with “Restore home time zone”, and on exit.
 - **Start at Windows sign-in** — a Task Scheduler task `IpTzTray` with administrator rights, without asking for rights again. Unchecking removes the task.
 - **How long to wait for the service** — 5, 10 or 20 seconds, 5 by default. This is the limit for each step: separately for the IP check and for the time zone request.
 - **DNS leak** — the three modes from “DNS leak”.
@@ -144,13 +148,15 @@ The time zone is given by its Windows name. `tzutil /l` prints the list of names
 - **Frequency**: while the IP stays the same, about every 10 seconds. After a network change the first check comes in 5 seconds, then every 5 seconds for about 25 seconds, then every 10 seconds again.
 - **Time zone** is asked in turn from ip-api.com, ipwho.is, ipinfo.io and geojs.io, only when the IP has changed. The IANA time zone name is mapped to a Windows time zone with the Unicode CLDR table and set with `tzutil`.
 - **Home time zone** — the Windows time zone at first launch, before the first adjustment. If a foreign time zone was set then, that one is remembered. You can fix it with “Remember the current time zone”.
+- **Your country** — the Windows country at first launch. The same button updates it.
 - **What goes out**: the IP lookup services see your public IP on every check. The geolocation service gets the IP only when the address changes.
 
 ## Limitations
 
 - A proxy set only in the browser goes unnoticed: the program sees the IP of the whole system.
 - The VPN datacenter's city in the geolocation database sometimes does not match the right time zone. The time zone the service returned is set.
-- Without administrator rights, neither the time zone nor DNS changes.
+- Without administrator rights, neither the time zone nor DNS changes. The Windows country still can.
+- The Microsoft account region is not changed. A pinned IP has no country code, so the country is not set for it.
 
 ## Build
 

@@ -12,6 +12,8 @@ IPTzTray pone el huso horario de Windows según la IP pública: la dirección po
 
 Solo cambia el huso horario; el reloj en sí (la hora UTC) no se mueve. En pantalla aparece otra hora local, y la misma la muestran los sitios web, los programas y los servicios.
 
+Opcionalmente, y está desactivado, el programa también pone el país de Windows según el país de la IP y devuelve el suyo al apagar ese ajuste. El idioma de la interfaz y la región de la cuenta de Microsoft no cambian.
+
 Así el programa elimina dos señales visibles de una VPN: una hora local que no coincide con la IP y unas consultas DNS que salen fuera del túnel. Otras señales, como una IP de centro de datos o el idioma del sistema, no las toca.
 
 El programa ve la IP de todo el sistema. Un proxy configurado solo en el navegador no lo detecta.
@@ -112,7 +114,9 @@ Tres líneas grises arriba: lugar, IP con el nombre IANA del huso horario, huso 
 ![Ajustes](screenshots/settings.png)
 
 - **Al salir, volver al huso de casa** — activado por defecto.
-- **Recordar el huso actual** — convierte enseguida el huso horario actual en el de casa.
+- **Recordar el huso actual** — convierte enseguida el huso horario actual en el de casa y recuerda el país actual de Windows.
+- **Cambiar el país según la IP** — desactivado. Pone el país de Windows según el país de la IP pública. No hacen falta permisos de administrador.
+- **Al apagar o cambiar, volver a su país** — activado. Su país vuelve al quitar la casilla, en pausa, con «Volver al huso de casa» y al salir.
 - **Iniciar al entrar en Windows** — una tarea del Programador de tareas llamada `IpTzTray`, con permisos de administrador y sin volver a pedirlos. Al desmarcar la casilla, la tarea se borra.
 - **Cuánto esperar la respuesta del servicio** — 5, 10 o 20 segundos, 5 por defecto. Es el límite de cada paso: uno para comprobar la IP y otro para pedir el huso horario.
 - **Fuga de DNS** — los tres modos de la sección «Fuga de DNS».
@@ -144,13 +148,15 @@ El huso horario se indica por su nombre de Windows. `tzutil /l` muestra la lista
 - **Frecuencia**: mientras la IP no cambia, cada 10 segundos aproximadamente. Tras un cambio de red, la primera comprobación llega a los 5 segundos, luego cada 5 segundos durante unos 25 segundos y después otra vez cada 10 segundos.
 - **Huso horario**: se pregunta por orden a ip-api.com, ipwho.is, ipinfo.io y geojs.io, solo cuando cambia la IP. El nombre IANA se convierte en un huso horario de Windows con la tabla de Unicode CLDR y se pone con `tzutil`.
 - **Huso horario de casa**: el huso horario de Windows en el primer inicio, antes del primer ajuste. Si entonces ya había uno de fuera, se guarda ese. Se corrige con «Recordar el huso actual».
+- **Su país**: el país de Windows en el primer inicio. El mismo botón también lo actualiza.
 - **Qué sale fuera**: los servicios que detectan la IP ven la IP pública en cada comprobación. El servicio de geolocalización recibe la IP solo cuando cambia la dirección.
 
 ## Limitaciones
 
 - Un proxy configurado solo en el navegador no se detecta: el programa ve la IP de todo el sistema.
 - La ciudad del centro de datos de la VPN en la base de geolocalización a veces no coincide con el huso horario correcto. Se pone el huso horario que devuelve el servicio.
-- Sin permisos de administrador no cambian ni el huso horario ni el DNS.
+- Sin permisos de administrador no cambian ni el huso horario ni el DNS. El país de Windows sí puede cambiar.
+- La región de la cuenta de Microsoft no cambia. Una IP fijada no tiene código de país, así que el programa no le cambia el país.
 
 ## Compilación
 

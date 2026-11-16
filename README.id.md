@@ -12,6 +12,8 @@ IPTzTray mengatur zona waktu Windows menurut IP publik, yaitu alamat yang benar-
 
 Yang berubah hanya zona waktu; jam itu sendiri (waktu UTC) tidak digeser. Layar menampilkan waktu lokal yang lain, dan situs, program, serta layanan menampilkan waktu yang sama.
 
+Secara opsional, dan ini mati, program juga mengatur negara Windows menurut negara IP dan mengembalikan negara Anda saat pengaturan itu dimatikan. Bahasa tampilan dan wilayah akun Microsoft tidak berubah.
+
 Dengan begitu program menghapus dua tanda VPN yang mencolok: waktu lokal yang tidak cocok dengan IP, dan kueri DNS yang lewat di luar terowongan. Tanda lain, misalnya IP pusat data atau bahasa sistem, tidak diubahnya.
 
 Program melihat IP seluruh sistem. Proxy yang diatur hanya di browser tidak terdeteksi.
@@ -112,7 +114,9 @@ Tiga baris abu-abu di atas: lokasi, IP dengan nama zona waktu IANA, zona waktu W
 ![Pengaturan](screenshots/settings.png)
 
 - **Saat keluar, kembalikan zona rumah** — menyala secara bawaan.
-- **Ingat zona saat ini** — langsung menjadikan zona waktu saat ini sebagai zona rumah.
+- **Ingat zona saat ini** — langsung menjadikan zona waktu saat ini sebagai zona rumah dan mengingat negara Windows saat ini.
+- **Ubah negara menurut IP** — mati. Mengatur negara Windows menurut negara IP publik. Hak administrator tidak diperlukan.
+- **Saat dimatikan atau diganti, kembalikan negara Anda** — menyala. Negara Anda kembali saat kotak dihapus, saat jeda, lewat “Kembalikan zona rumah”, dan saat keluar.
 - **Mulai saat masuk Windows** — tugas Task Scheduler bernama `IpTzTray` dengan hak administrator, tanpa meminta hak lagi. Menghapus centang akan menghapus tugas itu.
 - **Berapa lama menunggu jawaban layanan** — 5, 10, atau 20 detik, bawaannya 5. Ini batas untuk setiap langkah: terpisah untuk pemeriksaan IP dan untuk permintaan zona waktu.
 - **Kebocoran DNS** — tiga mode dari bagian “Kebocoran DNS”.
@@ -144,13 +148,15 @@ Zona waktu ditulis dengan nama Windows. `tzutil /l` menampilkan daftar nama.
 - **Frekuensi**: selama IP sama, kira-kira setiap 10 detik. Setelah jaringan berubah, pemeriksaan pertama 5 detik kemudian, lalu setiap 5 detik selama sekitar 25 detik, lalu kembali setiap 10 detik.
 - **Zona waktu** ditanyakan bergiliran ke ip-api.com, ipwho.is, ipinfo.io, dan geojs.io, hanya jika IP berubah. Nama zona waktu IANA diubah ke zona waktu Windows dengan tabel Unicode CLDR dan dipasang dengan `tzutil`.
 - **Zona waktu rumah** adalah zona waktu Windows saat pertama kali dijalankan, sebelum penyesuaian pertama. Jika saat itu sudah terpasang zona asing, zona itulah yang diingat. Perbaiki dengan “Ingat zona saat ini”.
+- **Negara Anda** adalah negara Windows saat pertama kali dijalankan. Tombol yang sama juga memperbaruinya.
 - **Apa yang keluar**: layanan pendeteksi IP melihat IP publik Anda di setiap pemeriksaan. Layanan geolokasi menerima IP hanya saat alamat berubah.
 
 ## Batasan
 
 - Proxy yang diatur hanya di browser tidak terdeteksi: program melihat IP seluruh sistem.
 - Kota pusat data VPN di basis data geolokasi kadang tidak cocok dengan zona waktu yang tepat. Yang dipasang adalah zona waktu yang dikembalikan layanan.
-- Tanpa hak administrator, zona waktu dan DNS tidak berubah.
+- Tanpa hak administrator, zona waktu dan DNS tidak berubah. Negara Windows tetap bisa berubah.
+- Wilayah akun Microsoft tidak berubah. IP yang disematkan tidak punya kode negara, jadi program tidak mengubah negara untuk IP itu.
 
 ## Build
 

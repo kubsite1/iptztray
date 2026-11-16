@@ -14,6 +14,7 @@ namespace IpTzTray
         public string Ip;
         public string City;
         public string Country;
+        public string CountryCode;
         public string Iana;
         public string WindowsId;
         public bool FromPin;
@@ -53,6 +54,7 @@ namespace IpTzTray
                 cached.Ip = ip;
                 cached.City = previous.City;
                 cached.Country = previous.Country;
+                cached.CountryCode = previous.CountryCode;
                 cached.Iana = previous.Iana;
                 cached.WindowsId = previous.WindowsId;
                 cached.Source = previous.Source;
@@ -155,7 +157,7 @@ namespace IpTzTray
         static GeoHit LookupGeo(string ip)
         {
             string[] urls = new string[] {
-                "http://ip-api.com/json/" + Uri.EscapeDataString(ip) + "?fields=status,message,country,city,timezone,query",
+                "http://ip-api.com/json/" + Uri.EscapeDataString(ip) + "?fields=status,message,country,countryCode,city,timezone,query",
                 "https://ipwho.is/" + Uri.EscapeDataString(ip),
                 "https://ipinfo.io/" + Uri.EscapeDataString(ip) + "/json",
                 "https://get.geojs.io/v1/ip/geo/" + Uri.EscapeDataString(ip) + ".json"
@@ -229,6 +231,9 @@ namespace IpTzTray
             hit.City = AsString(Get(root, "city"));
             hit.Country = AsString(Get(root, "country"));
             if (string.IsNullOrEmpty(hit.Country)) hit.Country = AsString(Get(root, "country_name"));
+            hit.CountryCode = Iso2(AsString(Get(root, "countryCode")));
+            if (hit.CountryCode == null) hit.CountryCode = Iso2(AsString(Get(root, "country_code")));
+            if (hit.CountryCode == null) hit.CountryCode = Iso2(hit.Country);
             hit.Ip = AsString(Get(root, "ip"));
             if (string.IsNullOrEmpty(hit.Ip)) hit.Ip = AsString(Get(root, "query"));
             return hit;
@@ -296,6 +301,20 @@ namespace IpTzTray
             object value;
             if (bag != null && bag.TryGetValue(key, out value)) return value;
             return null;
+        }
+
+        internal static string Iso2(string value)
+        {
+            if (string.IsNullOrEmpty(value) || value.Length != 2) return null;
+            char a = value[0];
+            char b = value[1];
+            if (!IsAsciiLetter(a) || !IsAsciiLetter(b)) return null;
+            return char.ToUpperInvariant(a).ToString() + char.ToUpperInvariant(b);
+        }
+
+        static bool IsAsciiLetter(char c)
+        {
+            return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
         }
 
         static string AsString(object value)

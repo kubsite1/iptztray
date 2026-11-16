@@ -236,10 +236,18 @@ namespace IpTzTray
                 GeoHit geo = Locator.ParseGeo("{\"status\":\"success\",\"country\":\"The Netherlands\",\"city\":\"Amsterdam\",\"timezone\":\"Europe/Amsterdam\",\"query\":\"203.0.113.5\"}");
                 if (geo == null || geo.Iana != "Europe/Amsterdam" || geo.City != "Amsterdam" || geo.Ip != "203.0.113.5")
                     throw new Exception("parse ip-api");
+                if (geo.CountryCode != null) throw new Exception("parse ip-api code");
                 if (Locator.ParseGeo("{\"status\":\"fail\",\"message\":\"reserved\"}") != null)
                     throw new Exception("parse fail");
-                GeoHit who = Locator.ParseGeo("{\"success\":true,\"city\":\"Amsterdam\",\"country\":\"Netherlands\",\"timezone\":{\"id\":\"Europe/Amsterdam\"}}");
-                if (who == null || who.Iana != "Europe/Amsterdam") throw new Exception("parse ipwho");
+                GeoHit coded = Locator.ParseGeo("{\"status\":\"success\",\"country\":\"The Netherlands\",\"countryCode\":\"nl\",\"city\":\"Amsterdam\",\"timezone\":\"Europe/Amsterdam\",\"query\":\"203.0.113.5\"}");
+                if (coded == null || coded.Country != "The Netherlands" || coded.CountryCode != "NL")
+                    throw new Exception("parse countryCode");
+                GeoHit info = Locator.ParseGeo("{\"country\":\"NL\",\"city\":\"Amsterdam\",\"timezone\":\"Europe/Amsterdam\",\"ip\":\"203.0.113.7\"}");
+                if (info == null || info.Country != "NL" || info.CountryCode != "NL" || info.Ip != "203.0.113.7")
+                    throw new Exception("parse ipinfo");
+                GeoHit who = Locator.ParseGeo("{\"success\":true,\"city\":\"Amsterdam\",\"country\":\"Netherlands\",\"country_code\":\"nl\",\"timezone\":{\"id\":\"Europe/Amsterdam\"}}");
+                if (who == null || who.Iana != "Europe/Amsterdam" || who.Country != "Netherlands" || who.CountryCode != "NL")
+                    throw new Exception("parse ipwho");
                 if (Locator.ExtractIp("203.0.113.8\n") != "203.0.113.8") throw new Exception("extract plain");
                 if (Locator.ExtractIp("fl=1\nip=203.0.113.9\nloc=NL\n") != "203.0.113.9") throw new Exception("extract trace");
                 if (Locator.IsPublic("10.1.1.1")) throw new Exception("private");
@@ -268,6 +276,9 @@ namespace IpTzTray
                     settings.DnsMode = 2;
                     settings.CheckTimeoutSec = 10;
                     settings.RestoreHomeOnExit = false;
+                    settings.MatchRegion = true;
+                    settings.RestoreRegion = false;
+                    settings.HomeGeoName = "ru";
                     settings.DnsWatch = true;
                     settings.DnsClosed = true;
                     settings.DnsSnapshotTaken = true;
@@ -284,6 +295,7 @@ namespace IpTzTray
                     if (loaded.DnsSvcPresent || !loaded.DnsPolicyKeyExisted || loaded.DnsPolicyValue != 0) throw new Exception("dns snapshot");
                     if (!loaded.DnsAutoFix || loaded.DnsAdapterBackup != "dhcp\tБеспроводная сеть 2\t192.168.31.1") throw new Exception("dns auto");
                     if (loaded.DnsMode != 2 || loaded.CheckTimeoutSec != 10 || loaded.RestoreHomeOnExit) throw new Exception("mode timeout");
+                    if (!loaded.MatchRegion || loaded.RestoreRegion || loaded.HomeGeoName != "RU") throw new Exception("region settings");
                     string pin;
                     if (!loaded.Pins.TryGetValue("203.0.113.5", out pin) || pin != "Eastern Standard Time")
                         throw new Exception("pin");
@@ -291,6 +303,7 @@ namespace IpTzTray
                     AppSettings broken = SettingsStore.LoadFile(path);
                     if (broken.Pins == null || !string.IsNullOrEmpty(broken.HomeTimeZoneId) || broken.DnsWatch) throw new Exception("corrupt settings");
                     if (!broken.RestoreHomeOnExit || broken.CheckTimeoutSec != 5 || broken.DnsMode != 0) throw new Exception("corrupt defaults");
+                    if (broken.MatchRegion || !broken.RestoreRegion || !string.IsNullOrEmpty(broken.HomeGeoName)) throw new Exception("region defaults");
 
                     File.WriteAllText(path, "{\"DnsWatch\":true,\"DnsAutoFix\":false}", Encoding.UTF8);
                     AppSettings ask = SettingsStore.LoadFile(path);
@@ -309,6 +322,7 @@ namespace IpTzTray
                     File.WriteAllText(path, "{\"DnsMode\":1,\"CheckTimeoutSec\":20,\"RestoreHomeOnExit\":false}", Encoding.UTF8);
                     AppSettings once = SettingsStore.LoadFile(path);
                     if (once.DnsMode != 1 || once.DnsWatch || once.CheckTimeoutSec != 20 || once.RestoreHomeOnExit) throw new Exception("startup mode");
+                    if (once.MatchRegion || !once.RestoreRegion) throw new Exception("region default keys");
                 }
                 finally
                 {
@@ -317,6 +331,7 @@ namespace IpTzTray
 
                 Lang.Use("ru");
                 if (Lang.T("menu.exit") != "Выход") throw new Exception("lang ru");
+                if (Lang.T("set.region") != "Менять страну по IP") throw new Exception("lang region");
                 Lang.Use("en");
                 if (Lang.T("menu.exit") != "Exit") throw new Exception("lang en");
                 Lang.Use("zh");
@@ -325,6 +340,7 @@ namespace IpTzTray
                 if (Lang.Code != "en") throw new Exception("lang fallback");
                 Lang.Use("");
                 if (string.IsNullOrEmpty(Lang.Code)) throw new Exception("lang detect");
+                WinGeo.SelfCheck();
 
             Console.WriteLine("selftest ok");
             return 0;
@@ -461,6 +477,9 @@ namespace IpTzTray
         public string HomeTimeZoneId { get; set; }
         public Dictionary<string, string> Pins { get; set; }
         public bool RestoreHomeOnExit { get; set; }
+        public bool MatchRegion { get; set; }
+        public bool RestoreRegion { get; set; }
+        public string HomeGeoName { get; set; }
         public int CheckTimeoutSec { get; set; }
         public int DnsMode { get; set; }
         public bool AutoStartDirty { get; set; }
@@ -538,6 +557,7 @@ namespace IpTzTray
         {
             var settings = new AppSettings();
             settings.RestoreHomeOnExit = true;
+            settings.RestoreRegion = true;
             settings.CheckTimeoutSec = 5;
             settings.DnsMode = 0;
             return settings;
@@ -547,6 +567,9 @@ namespace IpTzTray
         {
             if (json.IndexOf("\"RestoreHomeOnExit\"", StringComparison.Ordinal) < 0)
                 loaded.RestoreHomeOnExit = true;
+            if (json.IndexOf("\"RestoreRegion\"", StringComparison.Ordinal) < 0)
+                loaded.RestoreRegion = true;
+            loaded.HomeGeoName = WinGeo.Normalize(loaded.HomeGeoName);
             if (loaded.CheckTimeoutSec != 5 && loaded.CheckTimeoutSec != 10 && loaded.CheckTimeoutSec != 20)
                 loaded.CheckTimeoutSec = 5;
             if (json.IndexOf("\"DnsMode\"", StringComparison.Ordinal) < 0)
@@ -702,6 +725,89 @@ namespace IpTzTray
             if (!string.Equals(now, windowsId, StringComparison.OrdinalIgnoreCase))
                 throw new Exception(Lang.F("tz.stuck", now));
         }
+    }
+
+    static class WinGeo
+    {
+        const uint WmSettingChange = 0x001A;
+        const uint SmtoAbortIfHung = 0x0002;
+        const uint GeoFriendlyName = 8;
+
+        public static string Normalize(string value)
+        {
+            return Locator.Iso2(value);
+        }
+
+        public static string Current()
+        {
+            var buffer = new StringBuilder(16);
+            int count = GetUserDefaultGeoName(buffer, buffer.Capacity);
+            if (count <= 1) return "";
+            return Normalize(buffer.ToString()) ?? "";
+        }
+
+        public static string Display(string iso)
+        {
+            iso = Normalize(iso);
+            if (iso == null) return "";
+            var buffer = new StringBuilder(128);
+            int count = GetGeoInfoEx(iso, GeoFriendlyName, buffer, buffer.Capacity);
+            if (count > 1)
+            {
+                string name = buffer.ToString().Trim();
+                if (name.Length > 0) return name;
+            }
+            return iso;
+        }
+
+        public static bool Apply(string iso)
+        {
+            iso = Normalize(iso);
+            if (iso == null) throw new Exception(Lang.F("region.bad", ""));
+            if (string.Equals(Current(), iso, StringComparison.OrdinalIgnoreCase)) return false;
+            if (AppFlags.DryRun)
+            {
+                Log.Write("просмотр: страна была бы " + iso);
+                return false;
+            }
+            if (!SetUserGeoName(iso)) throw new Exception(Lang.F("region.bad", iso));
+            Broadcast();
+            string now = Current();
+            if (!string.Equals(now, iso, StringComparison.OrdinalIgnoreCase))
+                throw new Exception(Lang.F("region.stuck", now));
+            return true;
+        }
+
+        internal static void SelfCheck()
+        {
+            string current = Current();
+            if (Normalize(current) == null) throw new Exception("geo read");
+            if (string.IsNullOrEmpty(Display(current))) throw new Exception("geo name");
+            if (!SetUserGeoName(current)) throw new Exception("geo set");
+            Broadcast();
+            string after = Current();
+            Console.WriteLine("geo " + current + " -> " + after + " " + Display(current));
+            if (!string.Equals(after, current, StringComparison.OrdinalIgnoreCase))
+                throw new Exception("geo same");
+        }
+
+        static void Broadcast()
+        {
+            UIntPtr result;
+            SendMessageTimeout(new IntPtr(0xffff), WmSettingChange, UIntPtr.Zero, "intl", SmtoAbortIfHung, 1000, out result);
+        }
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
+        static extern int GetUserDefaultGeoName(StringBuilder geoName, int geoNameCount);
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        static extern bool SetUserGeoName(string geoName);
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
+        static extern int GetGeoInfoEx(string location, uint geoType, StringBuilder geoData, int geoDataCount);
+
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint msg, UIntPtr wParam, string lParam, uint flags, uint timeout, out UIntPtr result);
     }
 
     static class AutoStart

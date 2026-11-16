@@ -87,6 +87,12 @@ namespace IpTzTray
                 "Home time zone is on. Auto-switch is paused, or the next IP would change it again. {0} is in the menu.", "已启用家庭时区。自动切换已暂停，否则下一个 IP 会再次改掉它。菜单里有{0}。", "घरेलू समय क्षेत्र लग गया है। स्वतः बदलाव रुका है, नहीं तो अगला IP इसे फिर बदल देगा। मेनू में {0} है।", "El huso de casa está activo. El cambio automático está en pausa; si no, la siguiente IP lo cambiaría. {0} está en el menú.", "المنطقة المنزلية مفعّلة. التبديل التلقائي متوقف، وإلا غيّرها IP التالي. {0} في القائمة.", "Le fuseau domicile est actif. Le changement auto est en pause, sinon la prochaine IP le changerait. {0} est dans le menu.", "বাড়ির সময় অঞ্চল চালু। স্বয়ংক্রিয় বদল থেমে আছে, না হলে পরের IP আবার বদলে দেবে। মেনুতে {0} আছে।", "O fuso de casa está ativo. A troca automática está em pausa; senão o próximo IP mudaria de novo. {0} está no menu.", "Домашний пояс включён. Автосмена на паузе, иначе следующий IP снова его перебьёт. «{0}» — в меню.", "Zona rumah aktif. Ganti otomatis dijeda, kalau tidak IP berikutnya akan mengubahnya lagi. {0} ada di menu.");
             Add("balloon.home",
                 "Home time zone: {0}", "家庭时区：{0}", "घरेलू समय क्षेत्र: {0}", "Huso de casa: {0}", "المنطقة المنزلية: {0}", "Fuseau domicile : {0}", "বাড়ির সময় অঞ্চল: {0}", "Fuso de casa: {0}", "Домашний пояс: {0}", "Zona rumah: {0}");
+            Add("balloon.region",
+                "Country: {0}", "国家或地区：{0}", "देश: {0}", "País: {0}", "البلد: {0}", "Pays : {0}", "দেশ: {0}", "País: {0}", "Страна: {0}", "Negara: {0}");
+            Add("region.bad",
+                "Windows did not accept the country {0}", "Windows 不接受国家或地区 {0}", "Windows ने देश {0} स्वीकार नहीं किया", "Windows no aceptó el país {0}", "لم يقبل Windows البلد {0}", "Windows n’a pas accepté le pays {0}", "Windows দেশ {0} নেয়নি", "O Windows não aceitou o país {0}", "Windows не принял страну {0}", "Windows tidak menerima negara {0}");
+            Add("region.stuck",
+                "After the change the country is still {0}", "更改后国家或地区仍是 {0}", "बदलाव के बाद देश अभी भी {0} है", "Tras el cambio el país sigue siendo {0}", "بعد التغيير البلد ما زال {0}", "Après le changement le pays est encore {0}", "বদলের পরে দেশ এখনও {0}", "Depois da mudança o país ainda é {0}", "После смены страна осталась {0}", "Setelah diubah negara masih {0}");
             Add("balloon.copy",
                 "IP {0} copied to the clipboard", "IP {0} 已复制到剪贴板", "IP {0} क्लिपबोर्ड पर कॉपी हुआ", "IP {0} copiada al portapapeles", "تم نسخ IP {0} إلى الحافظة", "IP {0} copiée dans le presse-papiers", "IP {0} ক্লিপবোর্ডে কপি হয়েছে", "IP {0} copiado para a área de transferência", "IP {0} скопирован в буфер", "IP {0} disalin ke papan klip");
             Add("balloon.copyfail",
@@ -146,6 +152,14 @@ namespace IpTzTray
                 "Home time zone is not remembered yet.", "尚未记住家庭时区。", "घरेलू समय क्षेत्र अभी याद नहीं है।", "El huso de casa aún no está recordado.", "المنطقة المنزلية لم تُحفظ بعد.", "Le fuseau domicile n’est pas encore mémorisé.", "বাড়ির সময় অঞ্চল এখনও মনে নেই।", "O fuso de casa ainda não foi memorizado.", "Домашний пояс ещё не запомнен.", "Zona rumah belum diingat.");
             Add("set.home",
                 "Home: {0}", "家庭：{0}", "घर: {0}", "Casa: {0}", "المنزل: {0}", "Domicile : {0}", "বাড়ি: {0}", "Casa: {0}", "Домашний: {0}", "Rumah: {0}");
+            Add("set.home.geo",
+                "Home: {0} · {1}", "家庭：{0} · {1}", "घर: {0} · {1}", "Casa: {0} · {1}", "المنزل: {0} · {1}", "Domicile : {0} · {1}", "বাড়ি: {0} · {1}", "Casa: {0} · {1}", "Домашний: {0} · {1}", "Rumah: {0} · {1}");
+            Add("set.region",
+                "Match the country to the IP", "按 IP 更改国家或地区", "IP के अनुसार देश बदलें", "Cambiar el país según la IP", "غيّر البلد حسب IP", "Changer le pays selon l’IP", "IP অনুসারে দেশ বদলান", "Mudar o país conforme o IP", "Менять страну по IP", "Ubah negara menurut IP");
+            Add("set.region.restore",
+                "Restore your country when this is turned off or switched", "关闭或切换时恢复自己的国家或地区", "बंद करने या बदलने पर अपना देश लौटाएँ", "Al apagar o cambiar, volver a su país", "عند الإيقاف أو التبديل أرجع بلدك", "À l’arrêt ou au changement, revenir à votre pays", "বন্ধ বা বদলালে নিজের দেশ ফেরান", "Ao desligar ou mudar, voltar ao seu país", "Возвращать свою страну при выключении и переключениях", "Saat dimatikan atau diganti, kembalikan negara Anda");
+            Add("set.region.hint",
+                "Windows country only. Not the display language or the Microsoft account.", "只改 Windows 的国家或地区，不改界面语言，也不改微软帐户。", "केवल Windows का देश। प्रदर्शन भाषा और Microsoft खाता नहीं।", "Solo el país de Windows. No el idioma ni la cuenta de Microsoft.", "بلد Windows فقط. ليس لغة الواجهة ولا حساب Microsoft.", "Pays Windows seulement. Pas la langue ni le compte Microsoft.", "শুধু Windows-এর দেশ। ভাষা বা Microsoft অ্যাকাউন্ট নয়।", "Só o país do Windows. Nem o idioma, nem a conta Microsoft.", "Страна Windows, не язык и не учётная запись Microsoft.", "Hanya negara Windows. Bukan bahasa tampilan atau akun Microsoft.");
             Add("set.remember",
                 "Remember the current time zone", "记住当前时区", "वर्तमान समय क्षेत्र याद रखें", "Recordar el huso actual", "تذكر المنطقة الحالية", "Mémoriser le fuseau actuel", "বর্তমান সময় অঞ্চল মনে রাখুন", "Memorizar o fuso atual", "Запомнить текущий пояс", "Ingat zona saat ini");
             Add("set.autostart",

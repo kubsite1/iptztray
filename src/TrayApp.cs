@@ -65,6 +65,7 @@ namespace IpTzTray
         Form _front;
         DnsReport _dnsReport;
         bool _homeRestored;
+        bool _countryRestored;
 
         public TrayApp()
         {
@@ -75,8 +76,22 @@ namespace IpTzTray
             {
                 // До первой подстройки: иначе домашним стал бы пояс VPN.
                 SettingsStore.Current.HomeTimeZoneId = WinTz.CurrentId();
+                if (string.IsNullOrEmpty(SettingsStore.Current.HomeGeoName))
+                    SettingsStore.Current.HomeGeoName = WinGeo.Current();
                 SettingsStore.Save();
                 Log.Write("домашний пояс: " + SettingsStore.Current.HomeTimeZoneId);
+                if (!string.IsNullOrEmpty(SettingsStore.Current.HomeGeoName))
+                    Log.Write("своя страна: " + SettingsStore.Current.HomeGeoName);
+            }
+            else if (string.IsNullOrEmpty(SettingsStore.Current.HomeGeoName))
+            {
+                string geo = WinGeo.Current();
+                if (!string.IsNullOrEmpty(geo))
+                {
+                    SettingsStore.Current.HomeGeoName = geo;
+                    SettingsStore.Save();
+                    Log.Write("своя страна: " + geo);
+                }
             }
 
             if (Admin.Elevated && WinTz.DisableAuto())
@@ -408,6 +423,7 @@ namespace IpTzTray
             bool same = string.Equals(current, hit.WindowsId, StringComparison.OrdinalIgnoreCase);
             if (AppFlags.DryRun)
             {
+                ApplyCountry(hit, ipChanged);
                 if (!Welcome(!same, hit) && report)
                     Balloon(Lang.F("balloon.dry", PlaceText(hit)));
                 return;
@@ -416,21 +432,30 @@ namespace IpTzTray
             {
                 _error = Lang.T("err.noadmin");
                 UpdateUi();
-                if (report) Balloon(Lang.F("balloon.noadmin.ip", PlaceText(hit)));
+                if (ApplyCountry(hit, ipChanged))
+                    Balloon(Lang.F("balloon.region", WinGeo.Display(hit.CountryCode)));
+                else if (report)
+                    Balloon(Lang.F("balloon.noadmin.ip", PlaceText(hit)));
                 return;
             }
             if (same)
             {
-                if (!Welcome(false, hit) && report)
-                    Balloon(Lang.F("balloon.same", PlaceText(hit)));
+                bool country = ApplyCountry(hit, ipChanged);
+                if (!Welcome(false, hit))
+                {
+                    if (country) Balloon(Lang.F("balloon.region", WinGeo.Display(hit.CountryCode)));
+                    else if (report) Balloon(Lang.F("balloon.same", PlaceText(hit)));
+                }
                 return;
             }
 
-            if (!AppFlags.DryRun
-                && string.Equals(_lastFailedId, hit.WindowsId, StringComparison.OrdinalIgnoreCase)
+            if (string.Equals(_lastFailedId, hit.WindowsId, StringComparison.OrdinalIgnoreCase)
                 && DateTime.UtcNow - _lastFailUtc < TimeSpan.FromMinutes(2))
             {
-                if (report) Balloon(_error ?? Lang.T("balloon.fail"));
+                if (ApplyCountry(hit, ipChanged))
+                    Balloon(Lang.F("balloon.region", WinGeo.Display(hit.CountryCode)));
+                else if (report)
+                    Balloon(_error ?? Lang.T("balloon.fail"));
                 return;
             }
 
@@ -438,8 +463,8 @@ namespace IpTzTray
             {
                 WinTz.Apply(hit.WindowsId);
                 _lastFailedId = null;
-                if (!AppFlags.DryRun)
-                    Log.Write("пояс " + current + " -> " + hit.WindowsId);
+                Log.Write("пояс " + current + " -> " + hit.WindowsId);
+                ApplyCountry(hit, ipChanged);
                 UpdateUi();
                 if (!Welcome(true, hit) && report)
                     Balloon(Lang.F("balloon.set", PlaceText(hit)));
@@ -450,9 +475,57 @@ namespace IpTzTray
                 _lastFailUtc = DateTime.UtcNow;
                 _error = ex.Message;
                 Log.Write("не поставил " + hit.WindowsId + ": " + ex.Message);
+                bool country = ApplyCountry(hit, ipChanged);
                 UpdateUi();
                 if (report) Balloon(ex.Message);
+                else if (country) Balloon(Lang.F("balloon.region", WinGeo.Display(hit.CountryCode)));
             }
+        }
+
+        bool ApplyCountry(GeoHit hit, bool ipChanged)
+        {
+            if (!SettingsStore.Current.MatchRegion || hit == null) return false;
+            if (string.IsNullOrEmpty(hit.CountryCode))
+            {
+                if (ipChanged && !hit.FromCache)
+                    Log.Write(hit.FromPin ? "закрепление без страны, регион не меняю" : "нет кода страны, регион не меняю");
+                return false;
+            }
+            try
+            {
+                string before = WinGeo.Current();
+                if (!WinGeo.Apply(hit.CountryCode)) return false;
+                Log.Write("страна " + before + " -> " + hit.CountryCode);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Log.Write("не поставил страну " + hit.CountryCode + ": " + ex.Message);
+                return false;
+            }
+        }
+
+        void PutHomeCountry(string why)
+        {
+            string home = SettingsStore.Current.HomeGeoName;
+            if (string.IsNullOrEmpty(home)) return;
+            try
+            {
+                if (WinGeo.Apply(home))
+                    Log.Write(why + ": страна -> " + home);
+            }
+            catch (Exception ex)
+            {
+                Log.Write(why + ", своя страна не поставлена: " + ex.Message);
+            }
+        }
+
+        void RestoreCountryOnExit()
+        {
+            if (_countryRestored) return;
+            _countryRestored = true;
+            if (!SettingsStore.Current.MatchRegion || !SettingsStore.Current.RestoreRegion) return;
+            PutHomeCountry("выход");
         }
 
         bool Welcome(bool changed, GeoHit hit)
@@ -638,7 +711,12 @@ namespace IpTzTray
             SettingsStore.Save();
             Log.Write(SettingsStore.Current.Paused ? "пауза" : "автосмена включена");
             UpdateUi();
-            if (!SettingsStore.Current.Paused) StartCheck(true);
+            if (SettingsStore.Current.Paused)
+            {
+                if (SettingsStore.Current.MatchRegion && SettingsStore.Current.RestoreRegion)
+                    PutHomeCountry("пауза");
+            }
+            else StartCheck(true);
         }
 
         void GoHome()
@@ -664,13 +742,18 @@ namespace IpTzTray
                 UpdateUi();
                 Balloon(ex.Message);
             }
+            if (SettingsStore.Current.MatchRegion && SettingsStore.Current.RestoreRegion)
+                PutHomeCountry("домой");
         }
 
         void RememberHome()
         {
             SettingsStore.Current.HomeTimeZoneId = WinTz.CurrentId();
+            string geo = WinGeo.Current();
+            if (!string.IsNullOrEmpty(geo)) SettingsStore.Current.HomeGeoName = geo;
             SettingsStore.Save();
             Log.Write("новый домашний пояс: " + SettingsStore.Current.HomeTimeZoneId);
+            if (!string.IsNullOrEmpty(geo)) Log.Write("своя страна: " + geo);
             Balloon(Lang.F("balloon.home", WinTz.Display(SettingsStore.Current.HomeTimeZoneId)));
             UpdateUi();
         }
@@ -737,6 +820,13 @@ namespace IpTzTray
             bool langChanged = !string.Equals(nextLang, SettingsStore.Current.Lang ?? "", StringComparison.OrdinalIgnoreCase);
             SettingsStore.Current.Lang = nextLang;
             ApplyChrome();
+            bool wasMatch = SettingsStore.Current.MatchRegion;
+            bool matchRegion = dialog.MatchRegion;
+            bool restoreRegion = dialog.RestoreRegion;
+            if (wasMatch && !matchRegion && restoreRegion)
+                PutHomeCountry("настройка");
+            SettingsStore.Current.MatchRegion = matchRegion;
+            SettingsStore.Current.RestoreRegion = restoreRegion;
             SettingsStore.Current.RestoreHomeOnExit = dialog.RestoreHome;
             SettingsStore.Current.CheckTimeoutSec = dialog.TimeoutSec;
             int mode = dialog.DnsMode;
@@ -791,6 +881,8 @@ namespace IpTzTray
             }
             if (mode == 2 && prev != 2) ArmWatch();
             ApplyAutoStart(wantAuto, autoChanged);
+            if (!wasMatch && matchRegion && !SettingsStore.Current.Paused)
+                StartCheck(true);
             UpdateUi();
         }
 
@@ -1136,6 +1228,7 @@ namespace IpTzTray
         void OnSessionEnding(object sender, SessionEndingEventArgs e)
         {
             RestoreHome();
+            RestoreCountryOnExit();
         }
 
         void RestoreHome()
@@ -1161,7 +1254,11 @@ namespace IpTzTray
             if (_closing) return;
             _closing = true;
             _generation++;
-            if (restoreHome) RestoreHome();
+            if (restoreHome)
+            {
+                RestoreHome();
+                RestoreCountryOnExit();
+            }
             try { NetworkChange.NetworkAddressChanged -= OnNetwork; } catch { }
             try { SystemEvents.SessionEnding -= OnSessionEnding; } catch { }
             if (_timer != null) _timer.Stop();
@@ -1461,6 +1558,9 @@ namespace IpTzTray
     sealed class SettingsDialog : Form
     {
         readonly CheckBox _restore;
+        readonly CheckBox _region;
+        readonly CheckBox _regionRestore;
+        readonly Label _regionHint;
         readonly CheckBox _auto;
         readonly RadioButton _t5;
         readonly RadioButton _t10;
@@ -1502,6 +1602,21 @@ namespace IpTzTray
             remember.MinimumSize = new Size(160, 30);
             remember.Margin = new Padding(22, 0, 0, 16);
             remember.Text = Lang.T("set.remember");
+
+            _region = new CheckBox();
+            _region.AutoSize = true;
+            _region.Margin = new Padding(0, 8, 0, 4);
+            _region.Text = Lang.T("set.region");
+            _region.Checked = SettingsStore.Current.MatchRegion;
+
+            _regionRestore = new CheckBox();
+            _regionRestore.AutoSize = true;
+            _regionRestore.Margin = new Padding(0, 0, 0, 4);
+            _regionRestore.Text = Lang.T("set.region.restore");
+            _regionRestore.Checked = SettingsStore.Current.RestoreRegion;
+
+            _regionHint = Note(Lang.T("set.region.hint"), SystemColors.GrayText, 800);
+            _regionHint.Margin = new Padding(22, 0, 0, 8);
 
             _auto = new CheckBox();
             _auto.AutoSize = true;
@@ -1590,11 +1705,13 @@ namespace IpTzTray
             if (_lang.Items.Count > 0) _lang.SelectedIndex = selectedLang;
             var leftRule = Hairline(10);
 
-            SameFont(_restore, _homeLine, remember, _auto, timeouts, _t5, _t10, _t20, waitTitle, pollHint);
+            SameFont(_restore, _homeLine, remember, _region, _regionRestore, _regionHint, _auto, timeouts, _t5, _t10, _t20, waitTitle, pollHint);
             SameFont(dnsTitle, _off, _once, onceHint, _watch, watchHint, _checkNow, filesTitle, langLabel, _lang, path, open, save);
 
             int leftW = 0;
             leftW = Wider(leftW, _restore);
+            leftW = Wider(leftW, _region);
+            leftW = Wider(leftW, _regionRestore);
             leftW = Wider(leftW, _auto);
             leftW = Wider(leftW, remember);
             leftW = Wider(leftW, timeouts);
@@ -1611,6 +1728,7 @@ namespace IpTzTray
             rightW += 16;
 
             _homeLine.MaximumSize = new Size(Math.Max(40, leftW - _homeLine.Margin.Horizontal), 0);
+            _regionHint.MaximumSize = new Size(Math.Max(40, leftW - _regionHint.Margin.Horizontal), 0);
             onceHint.MaximumSize = new Size(Math.Max(40, rightW - onceHint.Margin.Horizontal), 0);
             watchHint.MaximumSize = new Size(Math.Max(40, rightW - watchHint.Margin.Horizontal), 0);
             leftRule.Width = leftW;
@@ -1636,6 +1754,9 @@ namespace IpTzTray
             yLeft = Place(left, _restore, yLeft, leftW);
             yLeft = Place(left, _homeLine, yLeft, leftW);
             yLeft = Place(left, remember, yLeft, leftW);
+            yLeft = Place(left, _region, yLeft, leftW);
+            yLeft = Place(left, _regionRestore, yLeft, leftW);
+            yLeft = Place(left, _regionHint, yLeft, leftW);
             yLeft = Place(left, leftRule, yLeft, leftW);
             yLeft = Place(left, _auto, yLeft, leftW);
             yLeft = Place(left, waitTitle, yLeft, leftW);
@@ -1756,6 +1877,8 @@ namespace IpTzTray
         }
 
         public bool RestoreHome { get { return _restore.Checked; } }
+        public bool MatchRegion { get { return _region.Checked; } }
+        public bool RestoreRegion { get { return _regionRestore.Checked; } }
         public bool AutoStart { get { return _auto.Checked; } }
         public int TimeoutSec { get { return _t20.Checked ? 20 : (_t10.Checked ? 10 : 5); } }
         public int DnsMode { get { return _watch.Checked ? 2 : (_once.Checked ? 1 : 0); } }
@@ -1772,7 +1895,9 @@ namespace IpTzTray
         {
             string id = SettingsStore.Current.HomeTimeZoneId;
             if (string.IsNullOrEmpty(id)) return Lang.T("set.home.none");
-            return Lang.F("set.home", WinTz.Display(id));
+            string geo = SettingsStore.Current.HomeGeoName;
+            if (string.IsNullOrEmpty(geo)) return Lang.F("set.home", WinTz.Display(id));
+            return Lang.F("set.home.geo", WinTz.Display(id), WinGeo.Display(geo));
         }
 
         void SameFont(params Control[] controls)

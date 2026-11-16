@@ -12,6 +12,8 @@ IPTzTray règle le fuseau horaire de Windows d’après l’IP publique : l’ad
 
 Seul le fuseau horaire change ; l’horloge elle-même (l’heure UTC) n’est pas déplacée. L’écran affiche une autre heure locale, et les sites, programmes et services affichent la même.
 
+En option, et c’est désactivé, le programme met aussi le pays Windows selon le pays de l’IP et remet le vôtre quand ce réglage est coupé. La langue d’affichage et la région du compte Microsoft ne changent pas.
+
 Le programme supprime ainsi deux signes visibles d’un VPN : une heure locale qui ne correspond pas à l’IP, et des requêtes DNS qui contournent le tunnel. Les autres signes, comme une IP de centre de données ou la langue du système, il n’y touche pas.
 
 Le programme voit l’IP de tout le système. Un proxy réglé seulement dans le navigateur lui échappe.
@@ -112,7 +114,9 @@ Trois lignes grises en haut : lieu, IP avec le nom IANA du fuseau horaire, fusea
 ![Paramètres](screenshots/settings.png)
 
 - **À la fermeture, revenir au fuseau domicile** — activé par défaut.
-- **Mémoriser le fuseau actuel** — fait aussitôt du fuseau horaire actuel celui du domicile.
+- **Mémoriser le fuseau actuel** — fait aussitôt du fuseau horaire actuel celui du domicile et mémorise le pays Windows actuel.
+- **Changer le pays selon l’IP** — désactivé. Met le pays Windows selon le pays de l’IP publique. Les droits d’administrateur ne sont pas nécessaires.
+- **À l’arrêt ou au changement, revenir à votre pays** — activé. Votre pays revient quand la case est décochée, en pause, avec « Revenir au fuseau domicile » et à la fermeture.
 - **Démarrer à l’ouverture de session** — une tâche du Planificateur de tâches nommée `IpTzTray`, avec les droits d’administrateur, sans redemander les droits. Décocher la case supprime la tâche.
 - **Combien attendre la réponse du service** — 5, 10 ou 20 secondes, 5 par défaut. C’est la limite de chaque étape : séparément pour la vérification de l’IP et pour la demande du fuseau horaire.
 - **Fuite DNS** — les trois modes de la section « Fuite DNS ».
@@ -144,13 +148,15 @@ Le fuseau horaire s’indique par son nom Windows. `tzutil /l` affiche la liste 
 - **Fréquence** : tant que l’IP ne change pas, environ toutes les 10 secondes. Après un changement de réseau, première vérification au bout de 5 secondes, puis toutes les 5 secondes pendant environ 25 secondes, puis de nouveau toutes les 10 secondes.
 - **Fuseau horaire** : demandé tour à tour à ip-api.com, ipwho.is, ipinfo.io et geojs.io, seulement quand l’IP a changé. Le nom IANA est converti en fuseau horaire Windows avec la table Unicode CLDR et appliqué avec `tzutil`.
 - **Fuseau horaire du domicile** : le fuseau horaire de Windows au premier lancement, avant le premier réglage. Si un fuseau étranger était déjà en place, c’est lui qui est mémorisé. On le corrige avec « Mémoriser le fuseau actuel ».
+- **Votre pays** : le pays Windows au premier lancement. Le même bouton le met aussi à jour.
 - **Ce qui sort** : les services de détection de l’IP voient votre IP publique à chaque vérification. Le service de géolocalisation ne reçoit l’IP que quand l’adresse change.
 
 ## Limites
 
 - Un proxy réglé seulement dans le navigateur n’est pas détecté : le programme voit l’IP de tout le système.
 - Dans la base de géolocalisation, la ville du centre de données du VPN ne correspond parfois pas au bon fuseau horaire. Le programme met celui que le service a renvoyé.
-- Sans droits d’administrateur, ni le fuseau horaire ni le DNS ne changent.
+- Sans droits d’administrateur, ni le fuseau horaire ni le DNS ne changent. Le pays Windows peut quand même changer.
+- La région du compte Microsoft ne change pas. Une IP épinglée n’a pas de code pays, donc le programme ne change pas le pays pour elle.
 
 ## Compilation
 

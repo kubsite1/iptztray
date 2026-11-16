@@ -12,6 +12,8 @@ O IPTzTray define o fuso horário do Windows pelo IP público: o endereço pelo 
 
 Só o fuso horário muda; o relógio em si (a hora UTC) não é alterado. A tela mostra outra hora local, e sites, programas e serviços mostram a mesma hora.
 
+Opcionalmente, e isto vem desligado, o programa também define o país do Windows pelo país do IP e devolve o seu quando esse ajuste é desligado. O idioma da interface e a região da conta Microsoft não mudam.
+
 Assim o programa remove dois sinais visíveis de VPN: hora local que não confere com o IP e consultas DNS por fora do túnel. Outros sinais, como um IP de data center ou o idioma do sistema, ele não altera.
 
 O programa vê o IP do sistema inteiro. Um proxy configurado só no navegador passa despercebido.
@@ -112,7 +114,9 @@ Três linhas cinzas no topo: local, IP com o nome IANA do fuso horário, fuso ho
 ![Configurações](screenshots/settings.png)
 
 - **Ao sair, voltar ao fuso de casa** — ligado por padrão.
-- **Memorizar o fuso atual** — torna o fuso horário atual o de casa na hora.
+- **Memorizar o fuso atual** — torna o fuso horário atual o de casa na hora e memoriza o país atual do Windows.
+- **Mudar o país conforme o IP** — desligado. Define o país do Windows pelo país do IP público. Direitos de administrador não são necessários.
+- **Ao desligar ou mudar, voltar ao seu país** — ligado. O seu país volta ao desmarcar a caixa, na pausa, com “Voltar ao fuso de casa” e ao sair.
 - **Iniciar ao entrar no Windows** — uma tarefa do Agendador de Tarefas chamada `IpTzTray`, com direitos de administrador, sem pedir os direitos de novo. Desmarcar a caixa apaga a tarefa.
 - **Quanto esperar a resposta do serviço** — 5, 10 ou 20 segundos, 5 por padrão. É o limite de cada etapa: um para verificar o IP e outro para pedir o fuso horário.
 - **Vazamento de DNS** — os três modos da seção “Vazamento de DNS”.
@@ -144,13 +148,15 @@ O fuso horário é indicado pelo nome do Windows. `tzutil /l` mostra a lista de 
 - **Frequência**: enquanto o IP não muda, a cada 10 segundos, mais ou menos. Depois de uma mudança de rede, a primeira verificação vem em 5 segundos, depois a cada 5 segundos por cerca de 25 segundos, e então de novo a cada 10 segundos.
 - **Fuso horário**: consultado em ordem em ip-api.com, ipwho.is, ipinfo.io e geojs.io, só quando o IP muda. O nome IANA é convertido em fuso horário do Windows pela tabela Unicode CLDR e definido com `tzutil`.
 - **Fuso horário de casa**: o fuso horário do Windows na primeira execução, antes do primeiro ajuste. Se nessa hora já estava um fuso estrangeiro, é ele que fica memorizado. Corrige-se com “Memorizar o fuso atual”.
+- **O seu país**: o país do Windows na primeira execução. O mesmo botão também o atualiza.
 - **O que sai**: os serviços que detectam o IP veem seu IP público a cada verificação. O serviço de geolocalização recebe o IP só quando o endereço muda.
 
 ## Limitações
 
 - Um proxy configurado só no navegador não é detectado: o programa vê o IP do sistema inteiro.
 - A cidade do data center da VPN na base de geolocalização às vezes não confere com o fuso horário certo. Fica o fuso horário que o serviço devolveu.
-- Sem direitos de administrador, nem o fuso horário nem o DNS mudam.
+- Sem direitos de administrador, nem o fuso horário nem o DNS mudam. O país do Windows ainda pode mudar.
+- A região da conta Microsoft não muda. Um IP fixado não tem código de país, então o programa não muda o país para ele.
 
 ## Compilação
 
