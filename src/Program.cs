@@ -16,8 +16,8 @@ using Microsoft.Win32;
 [assembly: AssemblyTitle(IpTzTray.AppInfo.Product)]
 [assembly: AssemblyProduct(IpTzTray.AppInfo.Product)]
 [assembly: AssemblyCompany(IpTzTray.AppInfo.Publisher)]
-[assembly: AssemblyVersion("1.0.0.0")]
-[assembly: AssemblyFileVersion("1.0.0.0")]
+[assembly: AssemblyVersion("1.1.0.0")]
+[assembly: AssemblyFileVersion("1.1.0.0")]
 [assembly: AssemblyInformationalVersion(IpTzTray.AppInfo.Version)]
 
 namespace IpTzTray
@@ -402,7 +402,7 @@ namespace IpTzTray
     static class AppInfo
     {
         public const string Product = "IPTzTray";
-        public const string Version = "1.0";
+        public const string Version = "1.1";
         public const string Publisher = "hello@kubsite.ru";
         public const string SiteUrl = "https://github.com/kubsite1/iptztray";
         public const string Tagline = "Часовой пояс Windows по внешнему IP";

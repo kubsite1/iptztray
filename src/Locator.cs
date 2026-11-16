@@ -332,7 +332,7 @@ namespace IpTzTray
             using (var client = new TimeoutClient(timeoutMs))
             {
                 client.Encoding = Encoding.UTF8;
-                client.Headers[HttpRequestHeader.UserAgent] = "IpTzTray/1.0";
+                client.Headers[HttpRequestHeader.UserAgent] = "IpTzTray/1.1";
                 client.Headers[HttpRequestHeader.CacheControl] = "no-cache";
                 client.Headers[HttpRequestHeader.Pragma] = "no-cache";
                 string body = client.DownloadString(url);
